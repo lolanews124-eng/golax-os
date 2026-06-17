@@ -34,7 +34,8 @@ module.exports = {
       args: "--filter @golax/web start",
       interpreter: "none",
       cwd: __dirname,
-      env: { NODE_ENV: "production" },
+      // PORT must match the CloudPanel site's App Port (reverse proxy target).
+      env: { NODE_ENV: "production", PORT: 3100 },
       max_restarts: 10,
       restart_delay: 3000,
     },
