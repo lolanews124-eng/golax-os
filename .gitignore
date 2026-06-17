@@ -17,8 +17,8 @@ out/
 # Prisma
 packages/db/prisma/migrations/dev.db*
 
-# Logs
-logs/
+# Logs (runtime log output only, not source modules named "logs")
+/logs/
 *.log
 npm-debug.log*
 pnpm-debug.log*
