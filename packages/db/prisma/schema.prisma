@@ -1,0 +1,368 @@
+// Golax Prospect AI OS - Prisma schema
+// Datasource: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum ProjectStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum WebsiteStatus {
+  ACTIVE
+  INACTIVE
+  MISSING
+}
+
+enum Priority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum JobType {
+  LEAD_DISCOVERY
+  WEBSITE_DISCOVERY
+  CONTACT_EXTRACTION
+  TECHNICAL_AUDIT
+  SEO_AUDIT
+  CONVERSION_AUDIT
+  OPPORTUNITY_SCORING
+  SERVICE_RECOMMENDATION
+  AI_ANALYSIS
+  OUTREACH_GENERATION
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum LogType {
+  SEARCH
+  AUDIT
+  AI
+  ERROR
+  INFO
+}
+
+// ---------------------------------------------------------------------------
+// Module 1: Authentication
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  projects      Project[]
+  refreshTokens RefreshToken[]
+  resetTokens   PasswordResetToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// Module 2: Project Management
+// ---------------------------------------------------------------------------
+
+model Project {
+  id          String        @id @default(cuid())
+  userId      String        @map("user_id")
+  name        String
+  country     String
+  city        String
+  category    String
+  targetLeads Int           @map("target_leads")
+  status      ProjectStatus @default(PENDING)
+  progress    Int           @default(0)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companies Company[]
+  jobs      Job[]
+  logs      Log[]
+
+  @@index([userId])
+  @@map("projects")
+}
+
+// ---------------------------------------------------------------------------
+// Module 3: Lead Discovery
+// ---------------------------------------------------------------------------
+
+model Company {
+  id            String        @id @default(cuid())
+  projectId     String        @map("project_id")
+  name          String
+  website       String?
+  phone         String?
+  address       String?
+  country       String?
+  city          String?
+  category      String?
+  websiteFound  Boolean       @default(false) @map("website_found")
+  websiteStatus WebsiteStatus @default(MISSING) @map("website_status")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  contact         Contact?
+  technicalAudit  TechnicalAudit?
+  seoAudit        SeoAudit?
+  conversionAudit ConversionAudit?
+  opportunity     Opportunity?
+  recommendations Recommendation[]
+  aiAnalysis      AiAnalysis?
+  outreach        OutreachMessage?
+
+  @@index([projectId])
+  @@map("companies")
+}
+
+// ---------------------------------------------------------------------------
+// Module 5: Contact Extraction
+// ---------------------------------------------------------------------------
+
+model Contact {
+  id          String  @id @default(cuid())
+  companyId   String  @unique @map("company_id")
+  email       String?
+  phone       String?
+  contactPage String? @map("contact_page")
+  facebook    String?
+  instagram   String?
+  linkedin    String?
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("contacts")
+}
+
+// ---------------------------------------------------------------------------
+// Module 6: Technical Audit
+// ---------------------------------------------------------------------------
+
+model TechnicalAudit {
+  id                  String  @id @default(cuid())
+  companyId           String  @unique @map("company_id")
+  performanceScore    Int?    @map("performance_score")
+  accessibilityScore  Int?    @map("accessibility_score")
+  bestPracticesScore  Int?    @map("best_practices_score")
+  mobileScore         Int?    @map("mobile_score")
+  sslStatus           Boolean @default(false) @map("ssl_status")
+  httpsStatus         Boolean @default(false) @map("https_status")
+  missingFavicon      Boolean @default(false) @map("missing_favicon")
+  brokenLinks         Int     @default(0) @map("broken_links")
+  issuesJson          Json?   @map("issues_json")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("technical_audits")
+}
+
+// ---------------------------------------------------------------------------
+// Module 7: SEO Audit
+// ---------------------------------------------------------------------------
+
+model SeoAudit {
+  id                      String  @id @default(cuid())
+  companyId               String  @unique @map("company_id")
+  seoScore                Int?    @map("seo_score")
+  titlePresent            Boolean @default(false) @map("title_present")
+  metaDescriptionPresent  Boolean @default(false) @map("meta_description_present")
+  h1Present               Boolean @default(false) @map("h1_present")
+  h2Count                 Int     @default(0) @map("h2_count")
+  canonicalPresent        Boolean @default(false) @map("canonical_present")
+  robotsPresent           Boolean @default(false) @map("robots_present")
+  sitemapPresent          Boolean @default(false) @map("sitemap_present")
+  imagesMissingAlt        Int     @default(0) @map("images_missing_alt")
+  issuesJson              Json?   @map("issues_json")
+  createdAt               DateTime @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("seo_audits")
+}
+
+// ---------------------------------------------------------------------------
+// Module 8: Conversion Audit
+// ---------------------------------------------------------------------------
+
+model ConversionAudit {
+  id                 String  @id @default(cuid())
+  companyId          String  @unique @map("company_id")
+  contactForm        Boolean @default(false) @map("contact_form")
+  whatsappButton     Boolean @default(false) @map("whatsapp_button")
+  callButton         Boolean @default(false) @map("call_button")
+  bookingForm        Boolean @default(false) @map("booking_form")
+  quoteForm          Boolean @default(false) @map("quote_form")
+  testimonialsPresent Boolean @default(false) @map("testimonials_present")
+  reviewsPresent     Boolean @default(false) @map("reviews_present")
+  socialLinksPresent Boolean @default(false) @map("social_links_present")
+  issuesJson         Json?   @map("issues_json")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("conversion_audits")
+}
+
+// ---------------------------------------------------------------------------
+// Module 9: Opportunity Scoring
+// ---------------------------------------------------------------------------
+
+model Opportunity {
+  id        String   @id @default(cuid())
+  companyId String   @unique @map("company_id")
+  score     Int      @default(0)
+  priority  Priority @default(LOW)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([score])
+  @@map("opportunities")
+}
+
+// ---------------------------------------------------------------------------
+// Module 10: Service Recommendation
+// ---------------------------------------------------------------------------
+
+model Recommendation {
+  id        String @id @default(cuid())
+  companyId String @map("company_id")
+  service   String
+  reason    String
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("recommendations")
+}
+
+// ---------------------------------------------------------------------------
+// Module 11: AI Analysis
+// ---------------------------------------------------------------------------
+
+model AiAnalysis {
+  id          String   @id @default(cuid())
+  companyId   String   @unique @map("company_id")
+  summary     String?
+  weaknesses  String?
+  opportunity String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("ai_analysis")
+}
+
+// ---------------------------------------------------------------------------
+// Module 12: Outreach Generator
+// ---------------------------------------------------------------------------
+
+model OutreachMessage {
+  id                 String   @id @default(cuid())
+  companyId          String   @unique @map("company_id")
+  emailSubject       String?  @map("email_subject")
+  emailBody          String?  @map("email_body")
+  contactFormMessage String?  @map("contact_form_message")
+  linkedinMessage    String?  @map("linkedin_message")
+  whatsappMessage    String?  @map("whatsapp_message")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("outreach_messages")
+}
+
+// ---------------------------------------------------------------------------
+// Module 16: Research Queue / Jobs
+// ---------------------------------------------------------------------------
+
+model Job {
+  id          String    @id @default(cuid())
+  projectId   String    @map("project_id")
+  companyId   String?   @map("company_id")
+  jobType     JobType   @map("job_type")
+  status      JobStatus @default(PENDING)
+  attempts    Int       @default(0)
+  error       String?
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([status])
+  @@map("jobs")
+}
+
+// ---------------------------------------------------------------------------
+// Module 17: Logs
+// ---------------------------------------------------------------------------
+
+model Log {
+  id        String   @id @default(cuid())
+  projectId String?  @map("project_id")
+  type      LogType
+  message   String
+  meta      Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([type])
+  @@map("logs")
+}

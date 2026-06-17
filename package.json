@@ -1,0 +1,24 @@
+{
+  "name": "golax-os",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Golax Prospect AI OS - AI-powered prospect research platform",
+  "scripts": {
+    "dev": "pnpm --parallel --filter \"./apps/*\" dev",
+    "dev:web": "pnpm --filter @golax/web dev",
+    "dev:api": "pnpm --filter @golax/api dev",
+    "dev:worker": "pnpm --filter @golax/worker dev",
+    "build": "pnpm -r build",
+    "db:generate": "pnpm --filter @golax/db generate",
+    "db:migrate": "pnpm --filter @golax/db migrate",
+    "db:migrate:deploy": "pnpm --filter @golax/db migrate:deploy",
+    "db:push": "pnpm --filter @golax/db push",
+    "db:studio": "pnpm --filter @golax/db studio",
+    "db:seed": "pnpm --filter @golax/db seed",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.34.3"
+}
